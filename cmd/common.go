@@ -13,26 +13,10 @@ import (
 	"github.com/search17/search17/internal/score"
 )
 
-// newProvider builds the LLM provider used by commands, selected via
-// --provider (openai or azure-openai). Tests override this with a mock
-// provider so CLI integration tests never hit the network.
+// newProvider builds the Gemini provider used by commands. Tests override
+// this with a mock provider so CLI integration tests never hit the network.
 var newProvider = func(apiKey string) llm.Provider {
-	return selectProvider(flagProvider, apiKey, flagAzureEndpoint, flagAzureDeployment)
-}
-
-// selectProvider is a pure function wrapping the --provider decision so it
-// can be unit-tested without going through the full CLI/flag machinery.
-func selectProvider(provider, apiKey, azureEndpoint, azureDeployment string) llm.Provider {
-	if provider == "azure-openai" {
-		if azureEndpoint == "" {
-			azureEndpoint = os.Getenv("AZURE_OPENAI_ENDPOINT")
-		}
-		if azureDeployment == "" {
-			azureDeployment = os.Getenv("AZURE_OPENAI_DEPLOYMENT")
-		}
-		return llm.NewAzureOpenAIProvider(apiKey, azureEndpoint, azureDeployment)
-	}
-	return llm.NewOpenAIProvider(apiKey)
+	return llm.NewGeminiProvider(apiKey)
 }
 
 // loadMemoryInput reads memory records from filePath, or from stdin when

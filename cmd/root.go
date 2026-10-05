@@ -9,13 +9,10 @@ import (
 
 // Global flags shared by all subcommands.
 var (
-	flagJSON            bool
-	flagModel           string
-	flagMaxTurns        int
-	flagAPIKey          string
-	flagProvider        string
-	flagAzureEndpoint   string
-	flagAzureDeployment string
+	flagJSON     bool
+	flagModel    string
+	flagMaxTurns int
+	flagAPIKey   string
 )
 
 var rootCmd = &cobra.Command{
@@ -38,27 +35,19 @@ func SetVersion(v string) {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "output machine-readable JSON instead of the boxed report")
-	rootCmd.PersistentFlags().StringVar(&flagModel, "model", "gpt-4o-mini", "LLM model (or Azure deployment name) to use for the agent")
+	rootCmd.PersistentFlags().StringVar(&flagModel, "model", "gemini-3.8-flash", "Gemini model to use for the agent")
 	rootCmd.PersistentFlags().IntVar(&flagMaxTurns, "max-turns", 12, "maximum ReAct loop turns before forced stop")
-	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "LLM API key (defaults to OPENAI_API_KEY or AZURE_OPENAI_API_KEY env var)")
-	rootCmd.PersistentFlags().StringVar(&flagProvider, "provider", "openai", "LLM backend: openai or azure-openai")
-	rootCmd.PersistentFlags().StringVar(&flagAzureEndpoint, "azure-endpoint", "", "Azure OpenAI endpoint, e.g. https://<resource>.openai.azure.com (defaults to AZURE_OPENAI_ENDPOINT env var)")
-	rootCmd.PersistentFlags().StringVar(&flagAzureDeployment, "azure-deployment", "", "Azure OpenAI deployment name (defaults to AZURE_OPENAI_DEPLOYMENT env var)")
+	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "Gemini API key (defaults to GEMINI_API_KEY env var)")
 }
 
-// resolveAPIKey returns the configured API key for the selected --provider,
-// falling back to the matching environment variable, with a clear error if
-// neither is set.
+// resolveAPIKey returns the configured Gemini API key, falling back to the
+// environment variable, with a clear error if neither is set.
 func resolveAPIKey() (string, error) {
 	if flagAPIKey != "" {
 		return flagAPIKey, nil
 	}
-	envVar := "OPENAI_API_KEY"
-	if flagProvider == "azure-openai" {
-		envVar = "AZURE_OPENAI_API_KEY"
-	}
-	if key := os.Getenv(envVar); key != "" {
+	if key := os.Getenv("GEMINI_API_KEY"); key != "" {
 		return key, nil
 	}
-	return "", fmt.Errorf("no API key configured: set --api-key or the %s environment variable", envVar)
+	return "", fmt.Errorf("no API key configured: set --api-key or the GEMINI_API_KEY environment variable")
 }

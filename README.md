@@ -25,7 +25,7 @@ the long-term memory supply chain of persistent AI agents (ChatGPT/Claude memory
 AutoGPT-style memory stores, enterprise copilots with per-user memory).
 
 Search17 is original tooling built on open-source infrastructure (Cobra for the CLI, the Go
-standard library for HTTP) — the OpenAI/Azure OpenAI API calls are raw `net/http`, no vendor
+standard library for HTTP) — the Gemini API calls are raw `net/http`, no vendor
 SDK. The novel contribution is the agent design itself: the persistent-instruction-attack
 threat category, the strict data/instruction separation defense, the deterministic scoring
 layer on top of LLM judgment, and the adversarial self-test proving the agent resists the
@@ -50,7 +50,7 @@ CLI (Cobra: scan|audit|trust-score|repair)
   -> Agent Runner: ReAct loop (internal/agent)
        tools: get_current_date, list_memories, get_memory,
               record_finding, finalize_report / finalize_repair_plan
-  -> LLM Provider              (internal/llm: openai.go + mock.go)
+  -> LLM Provider              (internal/llm: gemini.go + mock.go)
   -> Trust Scorer (deterministic, internal/score)
   -> Reporter (boxed text / JSON, internal/report)
 ```
@@ -79,30 +79,23 @@ adversarial fixture ([testdata/adversarial.json](testdata/adversarial.json)) thr
 
 ```sh
 go build -o search17 .
-export OPENAI_API_KEY=sk-...   # required — Search17 has no non-LLM fallback mode
+export GEMINI_API_KEY=...   # required — Search17 has no non-LLM fallback mode
 ```
 
-`--api-key` flag overrides the environment variable. `--model` (default `gpt-4o-mini`) and
+`--api-key` flag overrides the environment variable. `--model` (default `gemini-3.8-flash`) and
 `--max-turns` (default `12`) are also configurable per run.
 
-### Multi-provider / vendor-agnostic by design
+### Gemini provider
 
-The `Provider` interface (`internal/llm/provider.go`) is deployment-agnostic. Ships with two
-real backends today — swap with `--provider`:
+Search17 uses the Gemini `generateContent` API with function calling. Obtain an API key from
+[Google AI Studio](https://aistudio.google.com/apikey), then run:
 
 ```sh
-# OpenAI (default)
-search17 audit memory.json --provider openai --model gpt-4o-mini
-
-# Azure OpenAI — for enterprise clients standardized on Azure
-export AZURE_OPENAI_API_KEY=...
-search17 audit memory.json --provider azure-openai \
-  --azure-endpoint https://<resource>.openai.azure.com \
-  --azure-deployment <deployment-name>
+search17 audit memory.json --model gemini-3.8-flash
 ```
 
-Adding a self-hosted/open-weight backend (vLLM, Ollama, on-prem) is a new file implementing
-the same 15-line `Provider` interface — no changes to the agent, tools, or scoring logic.
+The `Provider` interface (`internal/llm/provider.go`) keeps the agent, tools, and scoring logic
+independent of the Gemini HTTP implementation.
 
 ### Pipeline / CI integration
 
@@ -190,7 +183,7 @@ go test ./... -race -cover
 ```
 
 All tests run fully offline against a scripted mock provider (`internal/llm/mock.go`) — no
-API key or network access required. A manual smoke test against the real OpenAI API:
+API key or network access required. A manual smoke test against the real Gemini API:
 
 ```sh
 go run . audit testdata/memory.json
@@ -227,8 +220,8 @@ check can sit in the write path, not just a periodic audit.
   competing with them.
 - **Auditability** — deterministic trust score + JSON output slot into compliance/reporting
   workflows and CI gates, not just a one-off human-readable report.
-- **Vendor neutrality** — works against OpenAI or Azure OpenAI today, and against any future
-  backend via the `Provider` interface, so it doesn't lock a client into one LLM vendor.
+- **Gemini integration** — function calling lets the model investigate stored memories through
+  the bounded tool set while deterministic code remains responsible for scoring and reporting.
 
 ## Scalability roadmap
 

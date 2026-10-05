@@ -1,5 +1,5 @@
 // Package llm abstracts an LLM backend capable of tool/function-calling
-// chat completions, so the agent runner can work against OpenAI in
+// chat completions, so the agent runner can work against Gemini in
 // production and a scripted mock in tests.
 package llm
 

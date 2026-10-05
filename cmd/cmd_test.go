@@ -66,7 +66,7 @@ func withMockProvider(t *testing.T, mock *llm.MockProvider) {
 }
 
 func TestCLI_Scan_NoFindings(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "finalize_report", map[string]any{"summary": "Nothing to flag."})},
@@ -86,7 +86,7 @@ func TestCLI_Scan_NoFindings(t *testing.T) {
 }
 
 func TestCLI_Audit_JSONOutput(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "record_finding", map[string]any{
@@ -112,7 +112,7 @@ func TestCLI_Audit_JSONOutput(t *testing.T) {
 }
 
 func TestCLI_TrustScore_PrintsNumberOnly(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "finalize_report", map[string]any{"summary": "clean"})},
@@ -129,7 +129,7 @@ func TestCLI_TrustScore_PrintsNumberOnly(t *testing.T) {
 }
 
 func TestCLI_TrustScore_Verbose(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "record_finding", map[string]any{
@@ -150,7 +150,7 @@ func TestCLI_TrustScore_Verbose(t *testing.T) {
 }
 
 func TestCLI_Repair_PrintsRemediationPlan(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "finalize_repair_plan", map[string]any{
@@ -172,7 +172,7 @@ func TestCLI_Repair_PrintsRemediationPlan(t *testing.T) {
 }
 
 func TestCLI_MissingFile(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{})
 
 	_, err := runCLI(t, []string{"scan", "../testdata/does_not_exist.json"})
@@ -182,7 +182,7 @@ func TestCLI_MissingFile(t *testing.T) {
 }
 
 func TestCLI_MalformedJSON(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{})
 
 	_, err := runCLI(t, []string{"audit", "../testdata/malformed.json"})
@@ -192,7 +192,7 @@ func TestCLI_MalformedJSON(t *testing.T) {
 }
 
 func TestCLI_MissingAPIKey(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("GEMINI_API_KEY", "")
 	withMockProvider(t, &llm.MockProvider{})
 
 	_, err := runCLI(t, []string{"audit", "../testdata/valid.json"})
@@ -202,7 +202,7 @@ func TestCLI_MissingAPIKey(t *testing.T) {
 }
 
 func TestCLI_Scan_FromStdin(t *testing.T) {
-	t.Setenv("OPENAI_API_KEY", "test-key")
+	t.Setenv("GEMINI_API_KEY", "test-key")
 	withMockProvider(t, &llm.MockProvider{
 		Responses: []llm.ChatResponse{
 			{Message: toolCallMsg("c1", "finalize_report", map[string]any{"summary": "clean"})},
@@ -228,14 +228,5 @@ func TestCLI_Scan_FromStdin(t *testing.T) {
 	}
 	if !strings.Contains(out, "<stdin>") {
 		t.Errorf("expected report to reference <stdin>, got: %s", out)
-	}
-}
-
-func TestSelectProvider(t *testing.T) {
-	if _, ok := selectProvider("openai", "k", "", "").(*llm.OpenAIProvider); !ok {
-		t.Error("expected OpenAIProvider for provider=openai")
-	}
-	if _, ok := selectProvider("azure-openai", "k", "https://x.openai.azure.com", "dep").(*llm.AzureOpenAIProvider); !ok {
-		t.Error("expected AzureOpenAIProvider for provider=azure-openai")
 	}
 }
