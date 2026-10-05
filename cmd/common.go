@@ -60,9 +60,22 @@ func runCommand(name string, filePath string, mode agent.Mode, maxTurns int) (*r
 		return nil, fmt.Errorf("no valid memory records to audit in %s", filePath)
 	}
 
-	runner := agent.NewRunner(provider, agent.Config{Model: flagModel, MaxTurns: maxTurns, Temperature: 0.1})
+	sp := newSpinner()
+	cfg := agent.Config{
+		Model:       flagModel,
+		MaxTurns:    maxTurns,
+		Temperature: 0.1,
+		OnTurnStart: func(turn int) {
+			sp.Start(fmt.Sprintf("turn %d: agent is thinking...", turn))
+		},
+		OnToolCall: func(turn int, toolName, argsJSON string) {
+			sp.Stop(fmt.Sprintf("\u2713 turn %d: %s", turn, formatToolCall(toolName, argsJSON)))
+		},
+	}
+	runner := agent.NewRunner(provider, cfg)
 
 	result, err := runner.Run(context.Background(), parsed.Records, mode)
+	sp.Stop("")
 	if err != nil {
 		return nil, fmt.Errorf("agent run failed: %w", err)
 	}

@@ -56,6 +56,12 @@ type Config struct {
 	Model       string
 	MaxTurns    int
 	Temperature float64
+
+	// Optional observability hooks for a caller-side progress UI (e.g. a CLI
+	// spinner). Both are nil-safe no-ops when unset and never affect what
+	// the agent decides \u2014 purely for display.
+	OnTurnStart func(turn int)                            // called before each provider call
+	OnToolCall  func(turn int, toolName, argsJSON string) // called after each dispatched tool call
 }
 
 // RunResult is the outcome of a completed (or forcibly stopped) agent run.

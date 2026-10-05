@@ -48,6 +48,10 @@ func (r *Runner) Run(ctx context.Context, records []memory.Record, mode Mode) (*
 	}
 
 	for turn := 0; turn < maxTurns; turn++ {
+		if r.Config.OnTurnStart != nil {
+			r.Config.OnTurnStart(turn + 1)
+		}
+
 		resp, err := r.Provider.CreateChatCompletion(ctx, llm.ChatRequest{
 			Model:       r.Config.Model,
 			Messages:    messages,
@@ -76,6 +80,9 @@ func (r *Runner) Run(ctx context.Context, records []memory.Record, mode Mode) (*
 				Content:    result,
 				ToolCallID: tc.ID,
 			})
+			if r.Config.OnToolCall != nil {
+				r.Config.OnToolCall(turn+1, tc.Name, tc.Arguments)
+			}
 		}
 
 		if rc.Done {
