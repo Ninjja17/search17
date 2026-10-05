@@ -51,7 +51,10 @@ func TestGeminiProvider_CreateChatCompletion_ToolCall(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(geminiResponse{Candidates: []struct {
 			Content geminiContent `json:"content"`
-		}{{Content: geminiContent{Parts: []geminiPart{{FunctionCall: &geminiFunctionCall{Name: "get_current_date", Args: map[string]any{}}}}}}}})
+		}{{Content: geminiContent{Parts: []geminiPart{{
+			FunctionCall:     &geminiFunctionCall{Name: "get_current_date", Args: map[string]any{}},
+			ThoughtSignature: "sig-abc",
+		}}}}}})
 	}))
 	defer server.Close()
 
@@ -62,6 +65,52 @@ func TestGeminiProvider_CreateChatCompletion_ToolCall(t *testing.T) {
 	}
 	if len(resp.Message.ToolCalls) != 1 || resp.Message.ToolCalls[0].Name != "get_current_date" || resp.Message.ToolCalls[0].Arguments != "{}" {
 		t.Errorf("unexpected tool calls: %#v", resp.Message.ToolCalls)
+	}
+	if resp.Message.ToolCalls[0].Signature != "sig-abc" {
+		t.Errorf("expected thoughtSignature captured as Signature, got %q", resp.Message.ToolCalls[0].Signature)
+	}
+}
+
+// TestGeminiProvider_EchoesThoughtSignatureOnReplay guards the fix for:
+// "Function call is missing a thought_signature in functionCall parts" —
+// Gemini's thinking models require the prior turn's signature to be sent
+// back verbatim when that assistant message (with its tool call) is
+// included in the next request's history.
+func TestGeminiProvider_EchoesThoughtSignatureOnReplay(t *testing.T) {
+	var gotSignature string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body geminiRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decoding request body: %v", err)
+		}
+		for _, c := range body.Contents {
+			for _, p := range c.Parts {
+				if p.FunctionCall != nil {
+					gotSignature = p.ThoughtSignature
+				}
+			}
+		}
+		content := "done"
+		_ = json.NewEncoder(w).Encode(geminiResponse{Candidates: []struct {
+			Content geminiContent `json:"content"`
+		}{{Content: geminiContent{Parts: []geminiPart{{Text: content}}}}}})
+	}))
+	defer server.Close()
+
+	p := &GeminiProvider{APIKey: "test-key", BaseURL: server.URL, HTTPClient: server.Client()}
+	_, err := p.CreateChatCompletion(context.Background(), ChatRequest{
+		Model: "gemini-3.8-flash",
+		Messages: []Message{
+			{Role: RoleUser, Content: "audit"},
+			{Role: RoleAssistant, ToolCalls: []ToolCall{{ID: "c1", Name: "get_current_date", Arguments: "{}", Signature: "sig-xyz"}}},
+			{Role: RoleTool, ToolCallID: "c1", Content: `{"date":"2026-10-05"}`},
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotSignature != "sig-xyz" {
+		t.Errorf("expected thoughtSignature echoed back as sig-xyz, got %q", gotSignature)
 	}
 }
 

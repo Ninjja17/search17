@@ -37,9 +37,16 @@ func loadMemoryInput(filePath string) (*memory.ParseResult, error) {
 // scan/audit/trust-score/repair, which only differ in Mode, max-turns, and
 // how they render the result.
 func runCommand(name string, filePath string, mode agent.Mode, maxTurns int) (*report.Data, error) {
-	apiKey, err := resolveAPIKey()
-	if err != nil {
-		return nil, err
+	var provider llm.Provider
+	if flagDemoOffline {
+		fmt.Fprintln(os.Stderr, "warning: --demo-offline is active \u2014 this is a scripted walkthrough, not live LLM reasoning")
+		provider = buildOfflineDemoProvider(mode)
+	} else {
+		apiKey, err := resolveAPIKey()
+		if err != nil {
+			return nil, err
+		}
+		provider = newProvider(apiKey)
 	}
 
 	parsed, err := loadMemoryInput(filePath)
@@ -53,7 +60,6 @@ func runCommand(name string, filePath string, mode agent.Mode, maxTurns int) (*r
 		return nil, fmt.Errorf("no valid memory records to audit in %s", filePath)
 	}
 
-	provider := newProvider(apiKey)
 	runner := agent.NewRunner(provider, agent.Config{Model: flagModel, MaxTurns: maxTurns, Temperature: 0.1})
 
 	result, err := runner.Run(context.Background(), parsed.Records, mode)

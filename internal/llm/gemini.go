@@ -37,6 +37,10 @@ type geminiPart struct {
 	Text             string                  `json:"text,omitempty"`
 	FunctionCall     *geminiFunctionCall     `json:"functionCall,omitempty"`
 	FunctionResponse *geminiFunctionResponse `json:"functionResponse,omitempty"`
+	// ThoughtSignature must be echoed back verbatim on the function call part
+	// in later turns, or "thinking" models reject the request (see
+	// https://ai.google.dev/gemini-api/docs/thought-signatures).
+	ThoughtSignature string `json:"thoughtSignature,omitempty"`
 }
 
 type geminiContent struct {
@@ -137,7 +141,10 @@ func toGeminiRequest(req ChatRequest) (geminiRequest, error) {
 					return geminiRequest{}, fmt.Errorf("gemini provider: decoding tool arguments: %w", err)
 				}
 			}
-			content.Parts = append(content.Parts, geminiPart{FunctionCall: &geminiFunctionCall{Name: call.Name, Args: args}})
+			content.Parts = append(content.Parts, geminiPart{
+				FunctionCall:     &geminiFunctionCall{Name: call.Name, Args: args},
+				ThoughtSignature: call.Signature,
+			})
 		}
 		if len(content.Parts) > 0 {
 			wire.Contents = append(wire.Contents, content)
@@ -243,6 +250,7 @@ func (p *GeminiProvider) CreateChatCompletion(ctx context.Context, req ChatReque
 			}
 			message.ToolCalls = append(message.ToolCalls, ToolCall{
 				ID: fmt.Sprintf("gemini_call_%d", index), Name: part.FunctionCall.Name, Arguments: string(args),
+				Signature: part.ThoughtSignature,
 			})
 		}
 	}

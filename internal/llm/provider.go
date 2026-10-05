@@ -20,6 +20,11 @@ type ToolCall struct {
 	ID        string
 	Name      string
 	Arguments string // raw JSON arguments, as emitted by the model
+	// Signature is an opaque, provider-specific continuation token that must
+	// be echoed back verbatim when this call is replayed in a later turn's
+	// message history (e.g. Gemini's thought_signature on "thinking" models).
+	// Providers that don't need it leave it empty; other providers ignore it.
+	Signature string
 }
 
 // Message is a single chat message. Assistant messages may carry ToolCalls

@@ -9,10 +9,11 @@ import (
 
 // Global flags shared by all subcommands.
 var (
-	flagJSON     bool
-	flagModel    string
-	flagMaxTurns int
-	flagAPIKey   string
+	flagJSON        bool
+	flagModel       string
+	flagMaxTurns    int
+	flagAPIKey      string
+	flagDemoOffline bool
 )
 
 var rootCmd = &cobra.Command{
@@ -38,6 +39,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&flagModel, "model", "gemini-3.8-flash", "Gemini model to use for the agent")
 	rootCmd.PersistentFlags().IntVar(&flagMaxTurns, "max-turns", 12, "maximum ReAct loop turns before forced stop")
 	rootCmd.PersistentFlags().StringVar(&flagAPIKey, "api-key", "", "Gemini API key (defaults to GEMINI_API_KEY env var)")
+	rootCmd.PersistentFlags().BoolVar(&flagDemoOffline, "demo-offline", false,
+		"run a scripted offline walkthrough (no API key/network) for demos — NOT real LLM reasoning")
 }
 
 // resolveAPIKey returns the configured Gemini API key, falling back to the
