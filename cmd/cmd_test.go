@@ -200,3 +200,42 @@ func TestCLI_MissingAPIKey(t *testing.T) {
 		t.Fatalf("expected missing API key error, got: %v", err)
 	}
 }
+
+func TestCLI_Scan_FromStdin(t *testing.T) {
+	t.Setenv("OPENAI_API_KEY", "test-key")
+	withMockProvider(t, &llm.MockProvider{
+		Responses: []llm.ChatResponse{
+			{Message: toolCallMsg("c1", "finalize_report", map[string]any{"summary": "clean"})},
+		},
+	})
+
+	data, err := os.ReadFile("../testdata/valid.json")
+	if err != nil {
+		t.Fatalf("reading fixture: %v", err)
+	}
+	r, w, _ := os.Pipe()
+	oldStdin := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() { os.Stdin = oldStdin })
+	go func() {
+		w.Write(data)
+		w.Close()
+	}()
+
+	out, err := runCLI(t, []string{"scan", "-"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v\noutput: %s", err, out)
+	}
+	if !strings.Contains(out, "<stdin>") {
+		t.Errorf("expected report to reference <stdin>, got: %s", out)
+	}
+}
+
+func TestSelectProvider(t *testing.T) {
+	if _, ok := selectProvider("openai", "k", "", "").(*llm.OpenAIProvider); !ok {
+		t.Error("expected OpenAIProvider for provider=openai")
+	}
+	if _, ok := selectProvider("azure-openai", "k", "https://x.openai.azure.com", "dep").(*llm.AzureOpenAIProvider); !ok {
+		t.Error("expected AzureOpenAIProvider for provider=azure-openai")
+	}
+}

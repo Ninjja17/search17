@@ -13,6 +13,24 @@ silently steer an agent's future behavior. Search17 audits those memory files fo
 - **Contradictions** — two or more memories asserting incompatible facts about the same thing.
 - **Staleness** — memories that were once true but are likely outdated.
 
+## Why this is a different problem than existing guardrails
+
+Tools like Lakera Guard, Rebuff, and NVIDIA NeMo Guardrails inspect the **live prompt/response
+turn** — they catch a jailbreak attempt as it's typed. None of them audit what an agent has
+already **persisted to memory** and will silently replay into every future conversation,
+often without re-entering the live context window at all. A single poisoned memory bypasses
+turn-level guardrails entirely, because by the time it's recalled, it's already "trusted
+stored fact" from the agent's own point of view. Search17 targets that specific, growing gap:
+the long-term memory supply chain of persistent AI agents (ChatGPT/Claude memory, LangChain /
+AutoGPT-style memory stores, enterprise copilots with per-user memory).
+
+Search17 is original tooling built on open-source infrastructure (Cobra for the CLI, the Go
+standard library for HTTP) — the OpenAI/Azure OpenAI API calls are raw `net/http`, no vendor
+SDK. The novel contribution is the agent design itself: the persistent-instruction-attack
+threat category, the strict data/instruction separation defense, the deterministic scoring
+layer on top of LLM judgment, and the adversarial self-test proving the agent resists the
+exact attack it's designed to catch.
+
 ## Why an agent, not a workflow
 
 Search17's core is an **LLM-driven ReAct-style tool-calling loop**, not a fixed pipeline
@@ -66,6 +84,34 @@ export OPENAI_API_KEY=sk-...   # required — Search17 has no non-LLM fallback m
 
 `--api-key` flag overrides the environment variable. `--model` (default `gpt-4o-mini`) and
 `--max-turns` (default `12`) are also configurable per run.
+
+### Multi-provider / vendor-agnostic by design
+
+The `Provider` interface (`internal/llm/provider.go`) is deployment-agnostic. Ships with two
+real backends today — swap with `--provider`:
+
+```sh
+# OpenAI (default)
+search17 audit memory.json --provider openai --model gpt-4o-mini
+
+# Azure OpenAI — for enterprise clients standardized on Azure
+export AZURE_OPENAI_API_KEY=...
+search17 audit memory.json --provider azure-openai \
+  --azure-endpoint https://<resource>.openai.azure.com \
+  --azure-deployment <deployment-name>
+```
+
+Adding a self-hosted/open-weight backend (vLLM, Ollama, on-prem) is a new file implementing
+the same 15-line `Provider` interface — no changes to the agent, tools, or scoring logic.
+
+### Pipeline / CI integration
+
+Every command accepts `-` in place of a file path to read memory JSON from stdin, so Search17
+can gate a CI/CD pipeline without a temp file:
+
+```sh
+curl -s https://internal-api/agent/memory-export | search17 trust-score - --json
+```
 
 ## Commands
 
@@ -149,3 +195,33 @@ API key or network access required. A manual smoke test against the real OpenAI 
 ```sh
 go run . audit testdata/memory.json
 ```
+
+## Impact
+
+Any enterprise rolling out agents with persistent memory — internal copilots, customer-facing
+assistants, LangChain/AutoGPT-style autonomous agents — inherits a new, largely unaudited
+attack surface: the memory store itself. Search17 is a drop-in audit layer for that surface:
+
+- **Risk reduction** — surfaces persistent-instruction attacks and manipulation before a
+  downstream agent ever acts on them, independent of (and complementary to) existing
+  live-prompt guardrails.
+- **Auditability** — the deterministic trust score and JSON output are built to slot into
+  compliance/reporting workflows and CI gates, not just a one-off human-readable report.
+- **Vendor neutrality** — works against OpenAI or Azure OpenAI today, and against any future
+  backend via the `Provider` interface, so it doesn't lock a client into one LLM vendor.
+
+## Scalability roadmap
+
+What's shipped is a CLI operating on a JSON file; the design is meant to extend without
+rework:
+
+- **More memory sources** — the agent only depends on `[]memory.Record`; adapters for vector
+  DBs (Pinecone/Chroma/pgvector), LangChain `BaseMemory` exports, or platform-specific memory
+  APIs (ChatGPT/Claude memory exports) are new parser implementations, not architecture changes.
+- **Service mode** — the same `runCommand`/`Runner` path wrapped in an HTTP handler turns this
+  into a webhook a CI pipeline or agent platform can call synchronously.
+- **More LLM backends** — see "Multi-provider" above; the interface is already proven with two
+  real implementations.
+- **Multi-language memories** — the LLM-driven classification (vs. regex/keyword rules) means
+  non-English memory text is handled by the model's existing multilingual ability without code
+  changes; this is untested/unbenchmarked today and called out honestly as follow-up work.
