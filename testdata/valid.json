@@ -1,0 +1,26 @@
+[
+  {
+    "id": "mem-001",
+    "memory": "User prefers dark mode in all UI themes.",
+    "source": "user_chat",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "confidence": 0.95,
+    "memory_type": "preference"
+  },
+  {
+    "id": "mem-002",
+    "memory": "User's primary email is handled via Outlook, not Gmail.",
+    "source": "user_chat",
+    "timestamp": "2026-02-01T09:00:00Z",
+    "confidence": 0.9,
+    "memory_type": "fact"
+  },
+  {
+    "id": "mem-003",
+    "memory": "Project deadline for Q1 report is March 31st.",
+    "source": "document_ingest",
+    "timestamp": "2026-01-20T14:00:00Z",
+    "confidence": 0.8,
+    "memory_type": "fact"
+  }
+]

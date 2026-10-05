@@ -1,0 +1,34 @@
+[
+  {
+    "id": "mem-020",
+    "memory": "User stated their favorite color is blue.",
+    "source": "user_chat",
+    "timestamp": "2025-06-01T10:00:00Z",
+    "confidence": 0.6,
+    "memory_type": "preference"
+  },
+  {
+    "id": "mem-021",
+    "memory": "User stated their favorite color is green.",
+    "source": "user_chat",
+    "timestamp": "2026-01-01T10:00:00Z",
+    "confidence": 0.85,
+    "memory_type": "preference"
+  },
+  {
+    "id": "mem-022",
+    "memory": "User's subscription tier is Free.",
+    "source": "billing_system",
+    "timestamp": "2024-03-01T10:00:00Z",
+    "confidence": 0.99,
+    "memory_type": "fact"
+  },
+  {
+    "id": "mem-023",
+    "memory": "User's subscription tier is Enterprise.",
+    "source": "billing_system",
+    "timestamp": "2026-03-01T10:00:00Z",
+    "confidence": 0.99,
+    "memory_type": "fact"
+  }
+]

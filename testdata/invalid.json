@@ -1,0 +1,42 @@
+[
+  {
+    "id": "mem-010",
+    "memory": "Valid record for comparison.",
+    "source": "user_chat",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "confidence": 0.9,
+    "memory_type": "fact"
+  },
+  {
+    "id": "",
+    "memory": "Missing ID field.",
+    "source": "user_chat",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "confidence": 0.9,
+    "memory_type": "fact"
+  },
+  {
+    "id": "mem-011",
+    "memory": "Confidence out of range.",
+    "source": "user_chat",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "confidence": 1.5,
+    "memory_type": "fact"
+  },
+  {
+    "id": "mem-012",
+    "memory": "Bad timestamp format.",
+    "source": "user_chat",
+    "timestamp": "not-a-date",
+    "confidence": 0.5,
+    "memory_type": "fact"
+  },
+  {
+    "id": "mem-013",
+    "memory": "",
+    "source": "user_chat",
+    "timestamp": "2026-01-15T10:30:00Z",
+    "confidence": 0.5,
+    "memory_type": "fact"
+  }
+]
